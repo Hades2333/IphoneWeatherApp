@@ -6,14 +6,212 @@
 //
 
 import UIKit
+import CoreLocation
 
-class ViewController: UIViewController {
+// TableView
+// Custom cell: with collectionview
+// API: request the data
+
+class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSource, CLLocationManagerDelegate {
+
+    @IBOutlet var table: UITableView!
+
+    var models = [Daily]()
+
+    let locationManager = CLLocationManager()
+
+    var currentLocation: CLLocation?
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
+
+        table.register(HourlyTableViewCell.nib(),
+                       forCellReuseIdentifier: HourlyTableViewCell.identifier)
+        table.register(WeatherTableViewCell.nib(),
+                       forCellReuseIdentifier: WeatherTableViewCell.identifier)
+        table.delegate = self
+        table.dataSource = self
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        setupLocation()
+    }
 
+    func setupLocation() {
+        locationManager.delegate = self
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingLocation()
+    }
+
+    func requestWeatherForLocation() {
+        guard let currentLocation = currentLocation else {
+            return
+        }
+        let long = currentLocation.coordinate.longitude
+        let lat = currentLocation.coordinate.latitude
+
+        let url = "https://api.openweathermap.org/data/2.5/onecall?lat=\(lat)&lon=\(long)&exclude=minutely&appid=6b874494c7d6dcf106922ff8f8605c98"
+        print(url)
+
+        URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
+             // validation
+            guard let data = data, error == nil else {
+                print("something went wrong")
+                return
+            }
+
+            // convert data to model
+            var json: Welcome?
+            do {
+                json = try JSONDecoder().decode(Welcome.self, from: data)
+            } catch {
+                fatalError("\(error)")
+            }
+
+            guard let result = json else {
+                return
+            }
+            print(result.current.clouds)
+
+            let entries = result.daily
+            self.models.append(contentsOf: entries)
+            //print(entries[0].)
+            // update user interface
+            DispatchQueue.main.async { [weak self] in
+                self?.table.reloadData()
+            }
+        }.resume()
+    }
+
+    //MARK: - CLLocationManagerDelegate
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        if !locations.isEmpty, currentLocation == nil {
+            currentLocation = locations.first
+            locationManager.stopUpdatingLocation()
+            requestWeatherForLocation()
+        }
+    }
+
+    //MARK: - TableViewDelegate
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        models.count
+    }
+
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        guard let cell  = table.dequeueReusableCell(withIdentifier: WeatherTableViewCell.identifier, for: indexPath) as? WeatherTableViewCell else { fatalError("couldnt reuse TableViewCell") }
+        cell.configure(with: models[indexPath.row])
+        return cell
+    }
 }
 
+// MARK: - Welcome
+struct Welcome: Codable {
+    let lat, lon: Double
+    let timezone: String
+    let timezoneOffset: Int
+    let current: Current
+    let hourly: [Current]
+    let daily: [Daily]
+
+    enum CodingKeys: String, CodingKey {
+        case lat, lon, timezone
+        case timezoneOffset = "timezone_offset"
+        case current, hourly, daily
+    }
+}
+
+// MARK: - Current
+struct Current: Codable {
+    let dt: Int
+    let sunrise, sunset: Int?
+    let temp, feelsLike: Double
+    let pressure, humidity: Int
+    let dewPoint, uvi: Double
+    let clouds, visibility: Int
+    let windSpeed: Double
+    let windDeg: Int
+    let weather: [Weather]
+    let windGust, pop: Double?
+    let rain: Rain?
+
+    enum CodingKeys: String, CodingKey {
+        case dt, sunrise, sunset, temp
+        case feelsLike = "feels_like"
+        case pressure, humidity
+        case dewPoint = "dew_point"
+        case uvi, clouds, visibility
+        case windSpeed = "wind_speed"
+        case windDeg = "wind_deg"
+        case weather
+        case windGust = "wind_gust"
+        case pop, rain
+    }
+}
+
+// MARK: - Rain
+struct Rain: Codable {
+    let the1H: Double
+
+    enum CodingKeys: String, CodingKey {
+        case the1H = "1h"
+    }
+}
+
+// MARK: - Weather
+struct Weather: Codable {
+    let id: Int
+    let main: Main
+    let weatherDescription, icon: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, main
+        case weatherDescription = "description"
+        case icon
+    }
+}
+
+enum Main: String, Codable {
+    case clear = "Clear"
+    case clouds = "Clouds"
+    case mist = "Mist"
+    case rain = "Rain"
+    case snow = "Snow"
+    case drizzle = "Drizzle"
+}
+
+// MARK: - Daily
+struct Daily: Codable {
+    let dt, sunrise, sunset: Int
+    let temp: Temp
+    let feelsLike: FeelsLike
+    let pressure, humidity: Int
+    let dewPoint, windSpeed: Double
+    let windDeg: Int
+    let weather: [Weather]
+    let clouds: Int
+    let pop: Double
+    let rain: Double?
+    let uvi: Double
+
+    enum CodingKeys: String, CodingKey {
+        case dt, sunrise, sunset, temp
+        case feelsLike = "feels_like"
+        case pressure, humidity
+        case dewPoint = "dew_point"
+        case windSpeed = "wind_speed"
+        case windDeg = "wind_deg"
+        case weather, clouds, pop, rain, uvi
+    }
+}
+
+// MARK: - FeelsLike
+struct FeelsLike: Codable {
+    let day, night, eve, morn: Double
+}
+
+// MARK: - Temp
+struct Temp: Codable {
+    let day, min, max, night: Double
+    let eve, morn: Double
+}
