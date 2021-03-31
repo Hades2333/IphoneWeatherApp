@@ -16,7 +16,6 @@ class WeatherTableViewCell: UITableViewCell {
 
     override func awakeFromNib() {
         super.awakeFromNib()
-        backgroundColor = .gray
     }
 
     override func setSelected(_ selected: Bool, animated: Bool) {
@@ -30,9 +29,12 @@ class WeatherTableViewCell: UITableViewCell {
     }
 
     func configure(with model: Daily) {
+        self.highTempLabel.textAlignment = .center
+        self.lowTempLabel.textAlignment = .center
+
         self.lowTempLabel.text = "\(Int(model.temp.min))°"
         self.highTempLabel.text = "\(Int(model.temp.max))°"
         self.dayLabel.text = String.init(milliseconds: model.dt)
-        self.iconImageView.image = UIImage(named: "clear")
+        self.iconImageView.load(string: model.weather[0].icon)
     }
 }
