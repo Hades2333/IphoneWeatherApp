@@ -16,6 +16,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
 
     @IBOutlet var table: UITableView!
 
+    var mainModel: Welcome?
     var models = [Daily]()
     var hourlyModels = [Current]()
 
@@ -85,6 +86,8 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
 
             self.hourlyModels = result.hourly
 
+            self.mainModel = result
+
             DispatchQueue.main.async { [weak self] in
                 self?.table.reloadData()
                 self?.table.tableHeaderView = self?.createTableHeader()
@@ -118,12 +121,17 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         guard let currentWeather = self.current else {
             return UIView()
         }
-        locationLabel.text = "Current Location"
+        locationLabel.text = mainModel?.timezone ?? "London"
+        locationLabel.textColor = .white
+        locationLabel.font = UIFont(name: "Helvetica-Bold", size: 17)
 
         tempLabel.text = "\(currentWeather.temp)°"
-        tempLabel.font = UIFont(name: "Helvetica-Bold", size: 32)
+        tempLabel.font = UIFont(name: "Helvetica-Bold", size: 22)
+        tempLabel.textColor = .white
 
-        //summaryLabel.text =
+        summaryLabel.text = currentWeather.weather[0].weatherDescription
+        summaryLabel.font = UIFont(name: "Helvetica-Bold", size: 32)
+        summaryLabel.textColor = .white
 
 
         summaryLabel.textAlignment = .center
