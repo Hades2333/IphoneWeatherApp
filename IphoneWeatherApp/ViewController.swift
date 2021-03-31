@@ -17,6 +17,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     @IBOutlet var table: UITableView!
 
     var models = [Daily]()
+    var hourlyModels = [Current]()
 
     let locationManager = CLLocationManager()
 
@@ -82,6 +83,8 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
             let myCurrent = result.current
             self.current = myCurrent
 
+            self.hourlyModels = result.hourly
+
             DispatchQueue.main.async { [weak self] in
                 self?.table.reloadData()
                 self?.table.tableHeaderView = self?.createTableHeader()
@@ -139,15 +142,32 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     }
 
     //MARK: - TableViewDelegate
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return 2
+    }
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        models.count
+        if section == 0 {
+            return 1
+        }
+        return models.count
     }
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        if indexPath.section == 0 {
+            guard let cell  = table.dequeueReusableCell(withIdentifier: HourlyTableViewCell.identifier, for: indexPath) as? HourlyTableViewCell else { fatalError("couldnt reuse TableViewCell") }
+            cell.backgroundColor = UIColor(red: 52/255.0, green: 109/255.0, blue: 179/255.0, alpha: 1.0)
+            cell.configure(with: hourlyModels)
+            return cell
+        }
         guard let cell  = table.dequeueReusableCell(withIdentifier: WeatherTableViewCell.identifier, for: indexPath) as? WeatherTableViewCell else { fatalError("couldnt reuse TableViewCell") }
         cell.backgroundColor = UIColor(red: 52/255.0, green: 109/255.0, blue: 179/255.0, alpha: 1.0)
         cell.configure(with: models[indexPath.row])
         return cell
+    }
+
+    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+        100
     }
 }
 
