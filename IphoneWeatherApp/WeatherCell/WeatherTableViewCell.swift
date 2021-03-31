@@ -31,7 +31,6 @@ class WeatherTableViewCell: UITableViewCell {
     func configure(with model: Daily) {
         self.highTempLabel.textAlignment = .center
         self.lowTempLabel.textAlignment = .center
-
         self.lowTempLabel.text = "\(Int(model.temp.min))°"
         self.highTempLabel.text = "\(Int(model.temp.max))°"
         self.dayLabel.text = String.init(milliseconds: model.dt)

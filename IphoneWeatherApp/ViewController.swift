@@ -21,6 +21,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
     let locationManager = CLLocationManager()
 
     var currentLocation: CLLocation?
+    var current: Current?
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,6 +32,8 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
                        forCellReuseIdentifier: WeatherTableViewCell.identifier)
         table.delegate = self
         table.dataSource = self
+        view.backgroundColor = UIColor(red: 52/255.0, green: 109/255.0, blue: 179/255.0, alpha: 1.0)
+        table.backgroundColor = UIColor(red: 52/255.0, green: 109/255.0, blue: 179/255.0, alpha: 1.0)
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -51,17 +54,16 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
         let long = currentLocation.coordinate.longitude
         let lat = currentLocation.coordinate.latitude
 
-        let url = "https://api.openweathermap.org/data/2.5/onecall?lat=\(lat)&lon=\(long)&exclude=minutely&appid=6b874494c7d6dcf106922ff8f8605c98"
+        let url = "https://api.openweathermap.org/data/2.5/onecall?lat=\(lat)&lon=\(long)&units=metric&exclude=minutely&appid=6b874494c7d6dcf106922ff8f8605c98"
         print(url)
 
         URLSession.shared.dataTask(with: URL(string: url)!) { data, response, error in
-             // validation
+
             guard let data = data, error == nil else {
                 print("something went wrong")
                 return
             }
 
-            // convert data to model
             var json: Welcome?
             do {
                 json = try JSONDecoder().decode(Welcome.self, from: data)
@@ -76,12 +78,55 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
 
             let entries = result.daily
             self.models.append(contentsOf: entries)
-            //print(entries[0].)
-            // update user interface
+
+            let myCurrent = result.current
+            self.current = myCurrent
+
             DispatchQueue.main.async { [weak self] in
                 self?.table.reloadData()
+                self?.table.tableHeaderView = self?.createTableHeader()
             }
         }.resume()
+    }
+
+    private func createTableHeader() -> UIView {
+        let headerView = UIView(frame: CGRect(x: 0, y: 0,
+                                              width: view.frame.size.width,
+                                              height: view.frame.size.width))
+        headerView.backgroundColor = UIColor(red: 52/255.0, green: 109/255.0, blue: 179/255.0, alpha: 1.0)
+
+        let locationLabel = UILabel(frame: CGRect(x: 10, y: 0,
+                                                  width: view.frame.size.width-20,
+                                                  height: view.frame.size.height/6))
+
+        let summaryLabel = UILabel(frame: CGRect(x: 10, y: 10+locationLabel.frame.size.height,
+                                                 width: view.frame.size.width-20,
+                                                 height: view.frame.size.height/6))
+
+        let tempLabel = UILabel(frame: CGRect(x: 10,
+                                              y:20+locationLabel.frame.size.height+20+summaryLabel.frame.size.height,
+                                              width: view.frame.size.width-20,
+                                              height: view.frame.size.height/6))
+
+        headerView.addSubview(locationLabel)
+        headerView.addSubview(summaryLabel)
+        headerView.addSubview(tempLabel)
+
+        guard let currentWeather = self.current else {
+            return UIView()
+        }
+        locationLabel.text = "Current Location"
+
+        tempLabel.text = "\(currentWeather.temp)°"
+        tempLabel.font = UIFont(name: "Helvetica-Bold", size: 32)
+
+        //summaryLabel.text =
+
+
+        summaryLabel.textAlignment = .center
+        locationLabel.textAlignment = .center
+        tempLabel.textAlignment = .center
+        return headerView
     }
 
     //MARK: - CLLocationManagerDelegate
@@ -100,6 +145,7 @@ class ViewController: UIViewController, UITableViewDelegate, UITableViewDataSour
 
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         guard let cell  = table.dequeueReusableCell(withIdentifier: WeatherTableViewCell.identifier, for: indexPath) as? WeatherTableViewCell else { fatalError("couldnt reuse TableViewCell") }
+        cell.backgroundColor = UIColor(red: 52/255.0, green: 109/255.0, blue: 179/255.0, alpha: 1.0)
         cell.configure(with: models[indexPath.row])
         return cell
     }
